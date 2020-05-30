@@ -508,16 +508,174 @@ namespace FFXIVAPP.Plugin.Log.Properties {
         [UserScopedSetting]
         [DebuggerNonUserCode]
         [DefaultSettingValue("0.7")]
-        public string WidgetOpacity {
-            get {
-                return (string) this["WidgetOpacity"];
+        public string WidgetOpacity
+        {
+            get
+            {
+                return (string)this["WidgetOpacity"];
             }
 
-            set {
+            set
+            {
                 this["WidgetOpacity"] = value;
                 this.RaisePropertyChanged();
             }
         }
+
+        #region Settings
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Discord__APIKey
+        {
+            get
+            {
+                return (string)this["Discord__APIKey"];
+            }
+
+            set
+            {
+                this["Discord__APIKey"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Discord__AdminUserIDs
+        {
+            get
+            {
+                return (string)this["Discord__AdminUserIDs"];
+            }
+
+            set
+            {
+                this["Discord__AdminUserIDs"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Discord__GuildID
+        {
+            get
+            {
+                return (string)this["Discord__GuildID"];
+            }
+
+            set
+            {
+                this["Discord__GuildID"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Discord__ChannelID
+        {
+            get
+            {
+                return (string)this["Discord__ChannelID"];
+            }
+
+            set
+            {
+                this["Discord__ChannelID"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string FFXIV__CharacterName
+        {
+            get
+            {
+                return (string)this["FFXIV__CharacterName"];
+            }
+
+            set
+            {
+                this["FFXIV__CharacterName"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string FFXIV__ChannelID
+        {
+            get
+            {
+                return (string)this["FFXIV__ChannelID"];
+            }
+
+            set
+            {
+                this["FFXIV__ChannelID"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Pulseway__Username
+        {
+            get
+            {
+                return (string)this["Pulseway__Username"];
+            }
+
+            set
+            {
+                this["Pulseway__Username"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Pulseway__Password
+        {
+            get
+            {
+                return (string)this["Pulseway__Password"];
+            }
+
+            set
+            {
+                this["Pulseway__Password"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+
+        [UserScopedSetting]
+        [DebuggerNonUserCode]
+        [DefaultSettingValue("")]
+        public string Pulseway__InstanceID
+        {
+            get
+            {
+                return (string)this["Pulseway__InstanceID"];
+            }
+
+            set
+            {
+                this["Pulseway__InstanceID"] = value;
+                this.RaisePropertyChanged();
+            }
+        }
+        #endregion
 
         [ApplicationScopedSetting]
         [DebuggerNonUserCode]
@@ -646,6 +804,16 @@ namespace FFXIVAPP.Plugin.Log.Properties {
             Constants.Settings.Add("TranslateFC");
             Constants.Settings.Add("TranslateAlliance");
             Constants.Settings.Add("Zoom");
+
+            Constants.Settings.Add("Discord__APIKey");
+            Constants.Settings.Add("Discord__AdminUserIDs");
+            Constants.Settings.Add("Discord__GuildID");
+            Constants.Settings.Add("Discord__ChannelID");
+            Constants.Settings.Add("FFXIV__CharacterName");
+            Constants.Settings.Add("FFXIV__ChannelID");
+            Constants.Settings.Add("Pulseway__Username");
+            Constants.Settings.Add("Pulseway__Password");
+            Constants.Settings.Add("Pulseway__InstanceID");
         }
 
         private void RaisePropertyChanged([CallerMemberName] string caller = "") {

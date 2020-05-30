@@ -56,7 +56,15 @@ namespace FFXIVAPP.Plugin.Log {
             }
 
             ChatLogItem chatLogEntry = chatLogItemEvent.ChatLogItem;
-            try {
+
+            Logging.Log(Logger, new LogItem(chatLogItemEvent.ChatLogItem.Code));
+            Logging.Log(Logger, new LogItem(chatLogItemEvent.ChatLogItem.Bytes.ToString()));
+            Logging.Log(Logger, new LogItem(chatLogItemEvent.ChatLogItem.Combined));
+            Logging.Log(Logger, new LogItem(chatLogItemEvent.ChatLogItem.Line));
+            Logging.Log(Logger, new LogItem(chatLogItemEvent.ChatLogItem.Raw));
+            Logging.Log(Logger, new LogItem(chatLogItemEvent.ChatLogItem.TimeStamp.ToString("o")));
+            try
+            {
                 LogPublisher.Process(chatLogEntry);
             }
             catch (Exception ex) {
