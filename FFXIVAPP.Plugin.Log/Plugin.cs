@@ -14,7 +14,7 @@ static class ByteArrayRocks
 {
     static readonly int[] Empty = new int[0];
 
-    public static int[] Locate(this byte[] self, byte[] candidate)
+    public static int[] Locate(this byte[] self, byte?[] candidate)
     {
         if (IsEmptyLocate(self, candidate))
             return Empty;
@@ -32,19 +32,24 @@ static class ByteArrayRocks
         return list.Count == 0 ? Empty : list.ToArray();
     }
 
-    static bool IsMatch(byte[] array, int position, byte[] candidate)
+    static bool IsMatch(byte[] array, int position, byte?[] candidate)
     {
         if (candidate.Length > (array.Length - position))
             return false;
 
         for (int i = 0; i < candidate.Length; i++)
+        {
+            if (candidate[i] == null)
+                continue;
+
             if (array[position + i] != candidate[i])
                 return false;
+        }
 
         return true;
     }
 
-    static bool IsEmptyLocate(byte[] array, byte[] candidate)
+    static bool IsEmptyLocate(byte[] array, byte?[] candidate)
     {
         return array == null
             || candidate == null
@@ -145,11 +150,11 @@ namespace Bot
 
         class ItemLinkReplacer
         {
-            private static readonly byte[] ItemLinkStartPattern = { 0x02, 0x48, 0x04, 0xf2, 0x02, 0x25, 0x03 };
-            private static readonly byte[] ItemLinkEndPattern = { 0x01, 0x03, 0x02, 0x13, 0x02, 0xEC, 0x03 };
+            private static readonly byte?[] ItemLinkStartPattern = { 0x02, 0x48, 0x04, 0xf2, 0x02, null, 0x03 };
+            private static readonly byte?[] ItemLinkEndPattern = { 0x01, 0x03, 0x02, 0x13, 0x02, 0xEC, 0x03 };
 
-            private static readonly byte[] ItemNameStartPattern = { 0x02, 0x01, 0xff };
-            private static readonly byte[] ItemNameEndPattern = { 0x03, 0x02, 0x48, 0x04 };
+            private static readonly byte?[] ItemNameStartPattern = { 0x02, 0x01, 0xff };
+            private static readonly byte?[] ItemNameEndPattern = { 0x03, 0x02, 0x48, 0x04 };
 
             public struct ItemReplacement
             {
@@ -231,7 +236,7 @@ namespace Bot
                 return;
             }
 
-            if (new Regex(@"\[.*\]:").IsMatch(e.ChatLogItem.Raw))
+            if (e.ChatLogItem.Line.StartsWith(Settings.Default.FFXIV__CharacterName))
             {
                 return;
             }
@@ -240,21 +245,32 @@ namespace Bot
 
             try
             {
-                System.IO.File.WriteAllBytes(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\b-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.txt", e.ChatLogItem.Bytes);
-                System.IO.File.WriteAllText(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\l-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.txt", e.ChatLogItem.Raw);
+                System.IO.File.WriteAllBytes(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\b-{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt", e.ChatLogItem.Bytes);
+                System.IO.File.WriteAllText(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\l-{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt", e.ChatLogItem.Raw);
                 var split = Split(utf8Message, 0x1F);
 
                 // cross-world user require special treatment
-                if (split[1].ToList().Contains(0x03))
+                switch (split[1].ToList().Count(b => b== 0x03))
                 {
-                    var crossWorldInfoSplit = Split(split[1], 0x03);
-                    var characterName = crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray();
-                    var realmName = crossWorldInfoSplit[3];
-                    _discordHandler.Broadcast($"<{System.Text.Encoding.UTF8.GetString(characterName)}@{System.Text.Encoding.UTF8.GetString(realmName)}> {System.Text.Encoding.UTF8.GetString(split[2])}");
-                }
-                else
-                {
-                    _discordHandler.Broadcast($"<{System.Text.Encoding.UTF8.GetString(split[1])}> {System.Text.Encoding.UTF8.GetString(split[2])}");
+                    case 3:
+                        {
+
+                            var crossWorldInfoSplit = Split(split[1], 0x03);
+                            var characterName = crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray();
+                            var realmName = crossWorldInfoSplit[3];
+                            _discordHandler.Broadcast($"<{System.Text.Encoding.UTF8.GetString(characterName)}@{System.Text.Encoding.UTF8.GetString(realmName)}> {System.Text.Encoding.UTF8.GetString(split[2])}");
+                            break;
+                        }
+                    case 2:
+                        {
+                            var crossWorldInfoSplit = Split(split[1], 0x03);
+                            var characterName = crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray();
+                            _discordHandler.Broadcast($"<{System.Text.Encoding.UTF8.GetString(characterName)}> {System.Text.Encoding.UTF8.GetString(split[2])}");
+                            break;
+                        }
+                    case 0:
+                        _discordHandler.Broadcast($"<{System.Text.Encoding.UTF8.GetString(split[1])}> {System.Text.Encoding.UTF8.GetString(split[2])}");
+                        break;
                 }
             }
             catch (Exception ex)
