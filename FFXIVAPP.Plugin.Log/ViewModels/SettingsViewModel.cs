@@ -25,8 +25,6 @@ namespace FFXIVAPP.Plugin.Log.ViewModels {
 
         public SettingsViewModel() {
             this.AddTabCommand = new DelegateCommand(AddTab);
-            this.ResetTranslationWidgetCommand = new DelegateCommand(this.ResetTranslationWidget);
-            this.OpenTranslationWidgetCommand = new DelegateCommand(this.OpenTranslationWidget);
         }
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
@@ -38,23 +36,6 @@ namespace FFXIVAPP.Plugin.Log.ViewModels {
         }
 
         public ICommand AddTabCommand { get; private set; }
-
-        public ICommand OpenTranslationWidgetCommand { get; private set; }
-
-        public ICommand ResetTranslationWidgetCommand { get; private set; }
-
-        public void OpenTranslationWidget() {
-            Settings.Default.ShowTranslationWidgetOnLoad = true;
-            Widgets.Instance.ShowTranslationWidget();
-        }
-
-        public void ResetTranslationWidget() {
-            Settings.Default.TranslationWidgetUIScale = Settings.Default.Properties["TranslationWidgetUIScale"].DefaultValue.ToString();
-            Settings.Default.TranslationWidgetTop = int.Parse(Settings.Default.Properties["TranslationWidgetTop"].DefaultValue.ToString());
-            Settings.Default.TranslationWidgetLeft = int.Parse(Settings.Default.Properties["TranslationWidgetLeft"].DefaultValue.ToString());
-            Settings.Default.TranslationWidgetHeight = int.Parse(Settings.Default.Properties["TranslationWidgetHeight"].DefaultValue.ToString());
-            Settings.Default.TranslationWidgetWidth = int.Parse(Settings.Default.Properties["TranslationWidgetWidth"].DefaultValue.ToString());
-        }
 
         /// <summary>
         /// </summary>

@@ -10,6 +10,6 @@ $ShareXPrefix = $ShareXPrefix.Substring(0,$ShareXPrefix.length-5)
 
 $UploadFilename = "$($TargetPath)"
 
-Copy-Item $TargetPath -Destination "..\..\..\1_app\Plugins\FFXIVAPP.Plugin.Log\FFXIVAPP.Plugin.Log.dll"
+Copy-Item $TargetPath -Destination "..\..\..\4_appdebug\Plugins\FFXIVAPP.Plugin.Log\FFXIVAPP.Plugin.Log.dll"
 
 Start-Process $ShareXPrefix $UploadFilename

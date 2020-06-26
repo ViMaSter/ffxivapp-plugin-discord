@@ -13,7 +13,6 @@ namespace FFXIVAPP.Plugin.Log {
 
     using FFXIVAPP.Common.Models;
     using FFXIVAPP.Common.Utilities;
-    using FFXIVAPP.Plugin.Log.Windows;
 
     using NLog;
 
@@ -22,26 +21,10 @@ namespace FFXIVAPP.Plugin.Log {
 
         private static Lazy<Widgets> _instance = new Lazy<Widgets>(() => new Widgets());
 
-        private TranslationWidget _translationWidget;
 
         public static Widgets Instance {
             get {
                 return _instance.Value;
-            }
-        }
-
-        public TranslationWidget TranslationWidget {
-            get {
-                return this._translationWidget ?? (this._translationWidget = new TranslationWidget());
-            }
-        }
-
-        public void ShowTranslationWidget() {
-            try {
-                this.TranslationWidget.Show();
-            }
-            catch (Exception ex) {
-                Logging.Log(Logger, new LogItem(ex, true));
             }
         }
     }

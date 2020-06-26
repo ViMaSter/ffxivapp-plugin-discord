@@ -163,20 +163,6 @@ namespace FFXIVAPP.Plugin.Log.Properties {
 
         [UserScopedSetting]
         [DebuggerNonUserCode]
-        [DefaultSettingValue("True")]
-        public bool ShowTranslationWidgetOnLoad {
-            get {
-                return (bool) this["ShowTranslationWidgetOnLoad"];
-            }
-
-            set {
-                this["ShowTranslationWidgetOnLoad"] = value;
-                this.RaisePropertyChanged();
-            }
-        }
-
-        [UserScopedSetting]
-        [DebuggerNonUserCode]
         [DefaultSettingValue("#FF800080")]
         public Color TimeStampColor {
             get {
@@ -778,7 +764,6 @@ namespace FFXIVAPP.Plugin.Log.Properties {
             Constants.Settings.Add("TranslationWidgetWidth");
             Constants.Settings.Add("TranslationWidgetHeight");
             Constants.Settings.Add("TranslationWidgetUIScale");
-            Constants.Settings.Add("ShowTranslationWidgetOnLoad");
             Constants.Settings.Add("TranslationWidgetTop");
             Constants.Settings.Add("TranslationWidgetLeft");
 

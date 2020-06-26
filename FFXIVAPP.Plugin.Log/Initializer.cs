@@ -18,7 +18,6 @@ namespace FFXIVAPP.Plugin.Log {
     using FFXIVAPP.Plugin.Log.Helpers;
     using FFXIVAPP.Plugin.Log.Properties;
     using FFXIVAPP.Plugin.Log.Views;
-    using FFXIVAPP.Plugin.Log.Windows;
 
     internal static class Initializer {
         /// <summary>
@@ -30,8 +29,6 @@ namespace FFXIVAPP.Plugin.Log {
             ThemeHelper.SetupColor(ref MainView.View.AllFD);
             ThemeHelper.SetupColor(ref MainView.View.TranslatedFD);
             ThemeHelper.SetupColor(ref MainView.View.DebugFD);
-            ThemeHelper.SetupFont(ref TranslationWidget.View.TranslatedFD);
-            ThemeHelper.SetupFont(ref TranslationWidget.View.TranslatedFD);
             foreach (UIElement item in PluginViewModel.Instance.Tabs) {
                 var tab = (TabItem) item;
                 var flowDocument = (xFlowDocument) tab.Content;
@@ -80,10 +77,6 @@ namespace FFXIVAPP.Plugin.Log {
                     TabItemHelper.AddTabByName(xKey, xValue, xRegularExpression);
                 }
             }
-        }
-
-        public static void SetupWidgetTopMost() {
-            WidgetTopMostHelper.HookWidgetTopMost();
         }
     }
 }

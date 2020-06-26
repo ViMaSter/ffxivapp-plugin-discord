@@ -16,7 +16,6 @@ namespace FFXIVAPP.Plugin.Log.Utilities {
     using FFXIVAPP.Common.Utilities;
     using FFXIVAPP.Plugin.Log.Properties;
     using FFXIVAPP.Plugin.Log.Views;
-    using FFXIVAPP.Plugin.Log.Windows;
 
     using NLog;
 
@@ -59,17 +58,6 @@ namespace FFXIVAPP.Plugin.Log.Utilities {
                         "#EAFF00"
                     },
                     MainView.View.TranslatedFD._FDR);
-                if (TranslationWidget.View.IsVisible) {
-                    Constants.FD.AppendFlow(
-                        player,
-                        string.Empty,
-                        result.Translated,
-                        new[] {
-                            timeStampColor,
-                            "#EAFF00"
-                        },
-                        TranslationWidget.View.TranslatedFD._FDR);
-                }
             }
 
             return result;

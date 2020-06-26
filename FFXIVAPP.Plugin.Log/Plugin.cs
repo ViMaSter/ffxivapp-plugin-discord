@@ -127,7 +127,7 @@ namespace Bot
             inputSimulator = new WindowsInput.InputSimulator();
         }
 
-        public byte[][] Split(byte[] input, byte separator, bool ignoreEmptyEntries = false)
+        public static byte[][] Split(byte[] input, byte separator, bool ignoreEmptyEntries = false)
         {
             var subArrays = new List<byte[]>();
             var start = 0;
@@ -148,7 +148,7 @@ namespace Bot
             return subArrays.ToArray();
         }
 
-        class ItemLinkReplacer
+        public class ItemLinkReplacer
         {
             private static readonly byte?[] ItemLinkStartPattern = { 0x02, 0x48, 0x04, 0xf2, 0x02, null, 0x03 };
             private static readonly byte?[] ItemLinkEndPattern = { 0x01, 0x03, 0x02, 0x13, 0x02, 0xEC, 0x03 };
@@ -180,13 +180,13 @@ namespace Bot
                 foreach (var itemLinkStartPosition in itemLinkStartPositions)
                 {
                     var itemNameEndPosition = ByteArrayRocks.Locate(rawMessage.Skip(itemLinkStartPosition).ToArray(), ItemNameEndPattern)[0];
-                    
+
                     var itemLinkBuffer = rawMessage.Skip(itemLinkStartPosition).Take(itemNameEndPosition).ToArray();
                     var itemNameStartPosition = ByteArrayRocks.Locate(itemLinkBuffer, ItemNameStartPattern).Last() + ItemNameStartPattern.Length + 1; // +1 as the character before the item name is always random but not part of the name
                     var itemName = itemLinkBuffer.Skip(itemNameStartPosition).Take(itemNameEndPosition).ToArray();
-                    
+
                     var fullStop = ByteArrayRocks.Locate(rawMessage.Skip(itemLinkStartPosition).ToArray(), ItemLinkEndPattern)[0];
-                    
+
                     result.Add(new ItemReplacement
                     {
                         StartIndex = itemLinkStartPosition,
@@ -218,6 +218,75 @@ namespace Bot
             }
         }
 
+        public class PFLinkReplacer
+        {
+            private static readonly byte?[] PFLinkStartPattern = { 0x02, 0x27, 0x08, 0x0A };
+            private static readonly byte?[] PFLinkEndPattern = { 0x01, 0x03 };
+            
+            private static readonly byte?[] PFNameStartPattern = { 0x48, 0x02, 0x01, 0x03 };
+            private static readonly byte?[] PFNameEndPattern = { 0x20, 0x02, 0x12, 0x02, 0x59, 0x03, 0x02, 0x27, 0x07 };
+
+            public struct PFReplacement
+            {
+                public int StartIndex;
+                public int EndIndex;
+                private string _rawPFEntry;
+                public string PFEntry
+                {
+                    get => $"{{{_rawPFEntry}}}";
+                    set
+                    {
+                        _rawPFEntry = value;
+                    }
+                }
+            };
+
+            private static List<PFReplacement> GetReplacementsFromText(byte[] rawMessage)
+            {
+                List<PFReplacement> result = new List<PFReplacement>();
+
+                var itemLinkStartPositions = ByteArrayRocks.Locate(rawMessage, PFLinkStartPattern);
+
+                foreach (var itemLinkStartPosition in itemLinkStartPositions)
+                {
+                    var itemNameEndPosition = ByteArrayRocks.Locate(rawMessage.Skip(itemLinkStartPosition).ToArray(), PFNameEndPattern)[0];
+
+                    var itemLinkBuffer = rawMessage.Skip(itemLinkStartPosition).Take(itemNameEndPosition).ToArray();
+                    var itemNameStartPosition = ByteArrayRocks.Locate(itemLinkBuffer, PFNameStartPattern).Last() + PFNameStartPattern.Length;
+                    var itemName = itemLinkBuffer.Skip(itemNameStartPosition).Take(itemNameEndPosition).ToArray();
+
+                    var fullStop = ByteArrayRocks.Locate(rawMessage.Skip(itemLinkStartPosition+itemNameStartPosition).ToArray(), PFLinkEndPattern)[0];
+
+                    result.Add(new PFReplacement
+                    {
+                        StartIndex = itemLinkStartPosition,
+                        EndIndex = itemLinkStartPosition + itemNameStartPosition + fullStop + PFLinkEndPattern.Length,
+                        PFEntry = System.Text.Encoding.UTF8.GetString(itemName),
+                    });
+                }
+
+                return result;
+            }
+
+            public static byte[] ReplaceItemReferences(byte[] rawMessage)
+            {
+                var messageCopy = rawMessage.ToArray();
+
+                List<PFReplacement> replacements = GetReplacementsFromText(messageCopy);
+
+                // apply the replacements in reverse to not change positional indices
+                replacements.Reverse();
+                foreach (var replacement in replacements)
+                {
+                    var before = new ArraySegment<byte>(messageCopy, 0, replacement.StartIndex);
+                    var mid = System.Text.Encoding.UTF8.GetBytes(replacement.PFEntry);
+                    var after = new ArraySegment<byte>(messageCopy, replacement.EndIndex, messageCopy.Length - (replacement.EndIndex));
+                    messageCopy = before.Concat(mid).Concat(after).ToArray();
+                }
+
+                return messageCopy;
+            }
+        }
 
         private void OnChatMessageReceived(object sender, FFXIVAPP.IPluginInterface.Events.ChatLogItemEvent e)
         {
@@ -241,12 +310,14 @@ namespace Bot
                 return;
             }
 
+            System.IO.File.WriteAllBytes(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\b-{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt", e.ChatLogItem.Bytes);
+            System.IO.File.WriteAllText(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\l-{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt", e.ChatLogItem.Raw);
+
             byte[] utf8Message = ItemLinkReplacer.ReplaceItemReferences(e.ChatLogItem.Bytes);
+            utf8Message = PFLinkReplacer.ReplaceItemReferences(utf8Message);
 
             try
             {
-                System.IO.File.WriteAllBytes(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\b-{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt", e.ChatLogItem.Bytes);
-                System.IO.File.WriteAllText(System.IO.Directory.GetCurrentDirectory() + $"\\Plugins\\FFXIVAPP.Plugin.Log\\l-{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt", e.ChatLogItem.Raw);
                 var split = Split(utf8Message, 0x1F);
 
                 // cross-world user require special treatment
@@ -385,7 +456,7 @@ namespace Bot
 
         private async Task ReadyAsync()
         {
-            System.IO.File.AppendAllText(System.IO.Directory.GetCurrentDirectory() + "\\Plugins\\FFXIVAPP.Plugin.Log\\e.txt", DateTime.Now.ToString("o"));
+            System.IO.File.AppendAllText(System.IO.Directory.GetCurrentDirectory() + "\\Plugins\\FFXIVAPP.Plugin.Log\\x.txt", DateTime.Now.ToString("o"));
         }
 
         public void SetIsActive(bool active)
@@ -862,8 +933,10 @@ namespace FFXIVAPP.Plugin.Log
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.ComponentModel.Composition;
-    using System.Configuration;
+    using System.Diagnostics;
+    using System.Linq;
     using System.Runtime.CompilerServices;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
@@ -986,8 +1059,19 @@ namespace FFXIVAPP.Plugin.Log
 
         public string Version { get; private set; }
 
+        static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            System.IO.File.WriteAllText(System.IO.Directory.GetCurrentDirectory() + "\\Plugins\\FFXIVAPP.Plugin.Log\\u.txt", e.ToString());
+            if (e.ExceptionObject != null)
+            {
+                System.IO.File.WriteAllText(System.IO.Directory.GetCurrentDirectory() + "\\Plugins\\FFXIVAPP.Plugin.Log\\u.txt", e.ToString());
+            }
+        }
+
         public void InitiateBot()
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
+
             try
             {
                 var discordHandler = new Bot.DiscordHandler(Settings.Default.Discord__APIKey);

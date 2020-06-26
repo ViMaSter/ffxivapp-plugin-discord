@@ -30,7 +30,6 @@ namespace FFXIVAPP.Plugin.Log {
         public ShellViewModel() {
             Initializer.LoadSettings();
             Initializer.LoadTabs();
-            Initializer.SetupWidgetTopMost();
             Settings.Default.PropertyChanged += DefaultOnPropertyChanged;
         }
 
@@ -73,9 +72,6 @@ namespace FFXIVAPP.Plugin.Log {
                         Logging.Log(Logger, new LogItem(ex, true));
                     }
 
-                    break;
-                case "WidgetClickThroughEnabled":
-                    WinAPI.ToggleClickThrough(Widgets.Instance.TranslationWidget);
                     break;
                 case "TranslationWidgetUIScale":
                     try {

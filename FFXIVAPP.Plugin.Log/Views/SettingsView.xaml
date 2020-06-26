@@ -70,20 +70,6 @@
                                           SelectedValue="{Binding WidgetOpacity, Source={StaticResource Settings}}" />
                             </StackPanel>
                         </GroupBox>
-                        <GroupBox
-                            Header="{Binding Locale[log_TranslationWidgetHeader], Source={StaticResource PluginViewModel}}">
-                            <StackPanel>
-                                <DockPanel LastChildFill="True">
-                                    <Button Margin="3"
-                                            Command="{Binding ResetTranslationWidgetCommand, Source={StaticResource SettingsViewModel}}"
-                                            Content="{Binding Locale[log_ResetPositionButtonText], Source={StaticResource PluginViewModel}}"
-                                            DockPanel.Dock="Right" />
-                                    <Button Margin="3"
-                                            Command="{Binding OpenTranslationWidgetCommand, Source={StaticResource SettingsViewModel}}"
-                                            Content="{Binding Locale[log_OpenNowButtonText], Source={StaticResource PluginViewModel}}" />
-                                </DockPanel>
-                            </StackPanel>
-                        </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
