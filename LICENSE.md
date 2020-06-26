@@ -1,3 +1,5 @@
+Discord support built by Vincent Mahnke <vincent@mahn.ke> (https://mahn.ke)
+
 Copyright(c) 2007 - 2018 Ryan Wilson <syndicated.life@gmail.com> (http://syndicated.life/)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
