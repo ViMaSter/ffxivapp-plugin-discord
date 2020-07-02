@@ -105,6 +105,8 @@ UpgradeLog*.XML
 # Allow plugins
 !FFXIVAPP.Plugin.*/
 
+distribution/
+
 ############
 ## Windows
 ############

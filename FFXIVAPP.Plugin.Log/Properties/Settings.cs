@@ -580,23 +580,6 @@ namespace FFXIVAPP.Plugin.Log.Properties {
         [UserScopedSetting]
         [DebuggerNonUserCode]
         [DefaultSettingValue("")]
-        public string FFXIV__CharacterName
-        {
-            get
-            {
-                return (string)this["FFXIV__CharacterName"];
-            }
-
-            set
-            {
-                this["FFXIV__CharacterName"] = value;
-                this.RaisePropertyChanged();
-            }
-        }
-
-        [UserScopedSetting]
-        [DebuggerNonUserCode]
-        [DefaultSettingValue("")]
         public string FFXIV__ChannelID
         {
             get
@@ -794,7 +777,6 @@ namespace FFXIVAPP.Plugin.Log.Properties {
             Constants.Settings.Add("Discord__AdminUserIDs");
             Constants.Settings.Add("Discord__GuildID");
             Constants.Settings.Add("Discord__ChannelID");
-            Constants.Settings.Add("FFXIV__CharacterName");
             Constants.Settings.Add("FFXIV__ChannelID");
             Constants.Settings.Add("Pulseway__Username");
             Constants.Settings.Add("Pulseway__Password");

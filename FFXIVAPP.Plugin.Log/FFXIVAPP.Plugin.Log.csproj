@@ -123,11 +123,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChatHandler\Discord.cs" />
+    <Compile Include="ChatHandler\FFXIV.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="EventSubscriber.cs" />
     <Compile Include="Helpers\LocaleHelper.cs" />
     <Compile Include="Helpers\TabItemHelper.cs" />
     <Compile Include="Helpers\ThemeHelper.cs" />
+    <Compile Include="ChatHandler\IDiscord.cs" />
     <Compile Include="Initializer.cs" />
     <Compile Include="Interop\WinAPI.cs" />
     <Compile Include="Localization\Chinese.cs" />
@@ -141,6 +144,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.cs" />
     <Compile Include="PluginViewModel.cs" />
+    <Compile Include="Pulseway.cs" />
     <Compile Include="ShellView.xaml.cs">
       <DependentUpon>ShellView.xaml</DependentUpon>
     </Compile>
