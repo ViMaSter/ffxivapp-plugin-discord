@@ -1,0 +1,83 @@
+name: "Run build + execute tests"
+ 
+on:
+  push:
+    branches:
+      - master
+ 
+jobs:
+  build_and_run_test:
+    runs-on: windows-latest
+ 
+    steps:
+    - name: Checkout ffxivAPP/sharlayan
+      uses: actions/checkout@v2
+      with:
+        repository: ffxivAPP/sharlayan
+        path: sharlayan
+
+    - name: Checkout ffxivAPP/ffxivapp-props
+      uses: actions/checkout@v2
+      with:
+        repository: ffxivAPP/ffxivapp-props
+        path: ffxivapp-props
+
+    - name: Checkout ffxivAPP/ffxivapp-common
+      uses: actions/checkout@v2
+      with:
+        repository: ffxivAPP/ffxivapp-common
+        path: ffxivapp-common
+
+    - name: Checkout ffxivAPP/ffxivapp-resourcefiles
+      uses: actions/checkout@v2
+      with:
+        repository: ffxivAPP/ffxivapp-resourcefiles
+        path: ffxivapp-resourcefiles
+
+    - name: Checkout ffxivAPP/ffxivapp-iplugininterface
+      uses: actions/checkout@v2
+      with:
+        repository: ffxivAPP/ffxivapp-iplugininterface
+        path: ffxivapp-iplugininterface
+
+    - name: Checkout this repo
+      uses: actions/checkout@v2
+      with:
+        repository: ViMaSter/ffxivapp-plugin-discord
+        path: ffxivapp-plugin-discord
+        
+    - uses: actions/checkout@v2
+      name: Checkout associated test repo
+      with:
+        repository: ViMaSter/ffxivapp-plugin-discord-test
+        path: ffxivapp-plugin-discord-test
+        
+    - name: Setup MSBuild Path
+      uses: warrenbuckley/Setup-MSBuild@v1
+
+    - name: Setup VSTest Path
+      uses: darenm/Setup-VSTest@v1
+       
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1.0.2     
+      
+    - name: Restore NuGet Packages for Sharlayan.csproj
+      run: cd sharlayan && nuget restore Sharlayan.sln
+           
+    - name: Restore NuGet Packages for FFXIVAPP.Common.csproj
+      run: cd ffxivapp-common && nuget restore FFXIVAPP.Common.sln
+           
+    - name: Restore NuGet Packages for FFXIVAPP.IPluginInterface.csproj
+      run: cd ffxivapp-iplugininterface && nuget restore FFXIVAPP.IPluginInterface.sln
+           
+    - name: Restore NuGet Packages for FFXIVAPP.ResourceFiles.csproj
+      run: cd ffxivapp-resourcefiles && nuget restore FFXIVAPP.ResourceFiles.sln
+           
+    - name: Restore NuGet Packages for FFXIVAPP.Plugin.Discord.sln
+      run: cd ffxivapp-plugin-discord && nuget restore FFXIVAPP.Plugin.Discord.sln
+           
+    - name: Build all required projects
+      run: cd ffxivapp-plugin-discord && msbuild FFXIVAPP.Plugin.Discord.sln /p:Configuration=Debug
+ 
+    - name: Run tests
+      run: cd ffxivapp-plugin-discord-test && vstest.console.exe bin\x86\Debug\FFXIVAPP.Plugin.Discord.Test.dll
