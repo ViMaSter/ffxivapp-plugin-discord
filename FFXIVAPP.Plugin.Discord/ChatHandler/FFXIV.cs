@@ -1,24 +1,32 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace FFXIVAPP.Plugin.Discord.ChatHandler
+﻿namespace FFXIVAPP.Plugin.Discord.ChatHandler
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+
+    using WindowsInput;
+    using WindowsInput.Native;
+
+    using FFXIVAPP.IPluginInterface;
+    using FFXIVAPP.IPluginInterface.Events;
+    using FFXIVAPP.Plugin.Discord.Properties;
+
+    using NLog;
+
     public class FFXIV
     {
-        private readonly string _chatChannel = Properties.Settings.Default.FFXIV__ChannelID;
+        private readonly string _chatChannel = Settings.Default.FFXIV__ChannelID;
 
-        private readonly WindowsInput.InputSimulator inputSimulator;
+        private readonly InputSimulator _inputSimulator;
         private IDiscord _discordHandler;
-        private readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-        private readonly Character _currentCharacter;
+        private readonly Character _currentCharacter = new Character("", "");
 
-        public FFXIV(FFXIVAPP.IPluginInterface.IPluginHost host)
+        public FFXIV(IPluginHost host)
         {
-            _currentCharacter = new Character("", "");
             host.ChatLogItemReceived += (sender, e) => {
                 try {
                     OnChatMessageReceived(sender, e);
@@ -27,61 +35,51 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                     string data = exception.ToString();
                     if (exception.InnerException != null)
                     {
-                        data += "\r\nInner exception: " + exception.InnerException.ToString();
+                        data += "\r\nInner exception: " + exception.InnerException;
                     }
-                    logger.Error($"[FFXIV::ChatLogItem] {data}");
+                    _logger.Error($"[FFXIV::ChatLogItem] {data}");
                 }
             };
             host.ConstantsUpdated += (sender, e) => {
                 try
                 {
-                    OnConstantsUpdated(sender, e);
+                    OnConstantsUpdated(e);
                 }
                 catch (Exception exception)
                 {
                     string data = exception.ToString();
                     if (exception.InnerException != null)
                     {
-                        data += "\r\nInner exception: " + exception.InnerException.ToString();
+                        data += "\r\nInner exception: " + exception.InnerException;
                     }
-                    logger.Error($"[FFXIV::Constants] {data}");
+                    _logger.Error($"[FFXIV::Constants] {data}");
                 }
             };
             host.CurrentPlayerUpdated += (sender, e) => {
                 try {
-                    OnCurrentPlayerUpdated(sender, e);
+                    OnCurrentPlayerUpdated(e);
                 }
                 catch (Exception exception) {
                     string data = exception.ToString();
                     if (exception.InnerException != null) {
-                        data += "\r\nInner exception: " + exception.InnerException.ToString();
+                        data += "\r\nInner exception: " + exception.InnerException;
                     }
 
-                    logger.Error($"[FFXIV::CurrentPlayer] {data}");
+                    _logger.Error($"[FFXIV::CurrentPlayer] {data}");
                 }
             };
 
-            inputSimulator = new WindowsInput.InputSimulator();
+            _inputSimulator = new InputSimulator();
         }
 
-        private void OnCurrentPlayerUpdated(object sender, FFXIVAPP.IPluginInterface.Events.CurrentPlayerEvent e)
+        private void OnCurrentPlayerUpdated(CurrentPlayerEvent e)
         {
-            if (_currentCharacter._characterName == e.CurrentPlayer.Name)
-            {
-                return;
-            }
-
-            _currentCharacter._characterName = e.CurrentPlayer.Name;
+            _currentCharacter.CharacterName = e.CurrentPlayer.Name;
         }
 
-        private void OnConstantsUpdated(object sender, FFXIVAPP.IPluginInterface.Events.ConstantsEntityEvent e)
+        private void OnConstantsUpdated(ConstantsEntityEvent e)
         {
-            if (_currentCharacter._worldName == e.ConstantsEntity.ServerName)
-            {
-                return;
-            }
-
-            _currentCharacter._worldName = e.ConstantsEntity.ServerName;
+            _currentCharacter.WorldName = e.ConstantsEntity.ServerName;
         }
 
         public static byte[][] Split(byte[] input, byte separator, bool ignoreEmptyEntries = false)
@@ -107,11 +105,11 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
 
         public class ItemLinkReplacer
         {
-            private static readonly byte?[] ItemLinkStartPattern = { 0x02, 0x48, 0x04, 0xf2, 0x02, null, 0x03 };
-            private static readonly byte?[] ItemLinkEndPattern = { 0x01, 0x03, 0x02, 0x13, 0x02, 0xEC, 0x03 };
+            private static readonly byte?[] ItemLinkStartPattern = { 0x02, 0x48 };
+            private static readonly byte?[] ItemLinkEndPattern = { 0x01, 0x03, 0x02, 0x13 };
 
-            private static readonly byte?[] ItemNameStartPattern = { 0x02, 0x01, 0xff };
-            private static readonly byte?[] ItemNameEndPattern = { 0x03, 0x02, 0x48, 0x04 };
+            private static readonly byte?[] BufferPrecedingItemNameLengthPattern = { 0x02, 0x48 };
+            private static readonly byte?[] ItemNameEndPattern = { 0x02, 0x27, 0x07 };
 
             public struct ItemReplacement
             {
@@ -121,34 +119,40 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                 public string ItemName
                 {
                     get => $"[[{_itemName}]]";
-                    set
-                    {
-                        _itemName = value;
-                    }
+                    set => _itemName = value;
                 }
-            };
+            }
 
             private static List<ItemReplacement> GetReplacementsFromText(byte[] rawMessage)
             {
                 List<ItemReplacement> result = new List<ItemReplacement>();
 
-                var itemLinkStartPositions = rawMessage.Locate(ItemLinkStartPattern);
-
-                foreach (var itemLinkStartPosition in itemLinkStartPositions)
+                var replacements = rawMessage.Locate(ItemLinkStartPattern);
+                if (replacements.Length < 3)
                 {
-                    var itemNameEndPosition = rawMessage.Skip(itemLinkStartPosition).ToArray().Locate(ItemNameEndPattern)[0];
+                    return result;
+                }
 
-                    var itemLinkBuffer = rawMessage.Skip(itemLinkStartPosition).Take(itemNameEndPosition).ToArray();
-                    var itemNameStartPosition = itemLinkBuffer.Locate(ItemNameStartPattern).Last() + ItemNameStartPattern.Length + 1; // +1 as the character before the item name is always random but not part of the name
-                    var itemName = itemLinkBuffer.Skip(itemNameStartPosition).Take(itemNameEndPosition).ToArray();
+                var itemLinkBufferStartPositions = replacements.Where((x, i) => i % 3 == 0);
 
-                    var fullStop = ByteArrayExtensions.Locate(rawMessage.Skip(itemLinkStartPosition).ToArray(), ItemLinkEndPattern)[0];
+                foreach (var itemLinkBufferStartPosition in itemLinkBufferStartPositions)
+                {
+                    var itemLinkBufferPreEnd = rawMessage.Skip(itemLinkBufferStartPosition).ToArray().Locate(ItemLinkEndPattern).Last() + ItemLinkEndPattern.Length;
+                    var itemLinkBufferEnd = itemLinkBufferPreEnd + rawMessage.Skip(itemLinkBufferStartPosition + itemLinkBufferPreEnd).ToArray().Locate(new byte?[] { 0x03 }).Last() + 1;
+                    var itemLinkBuffer = rawMessage.Skip(itemLinkBufferStartPosition).Take(itemLinkBufferEnd).ToArray();
+
+                    var bufferPrecedingItemNameLength = itemLinkBuffer.Locate(BufferPrecedingItemNameLengthPattern).Last() + BufferPrecedingItemNameLengthPattern.Length;
+                    var bufferPrecedingItemName = itemLinkBuffer[bufferPrecedingItemNameLength];
+                    
+                    var itemNameEndPosition = itemLinkBuffer.Locate(ItemNameEndPattern).Last();
+                    var itemNameStartIndex = bufferPrecedingItemNameLength + 1 + bufferPrecedingItemName;
+                    var itemName = itemLinkBuffer.Skip(itemNameStartIndex).Take(itemNameEndPosition - (itemNameStartIndex)).ToArray();
 
                     result.Add(new ItemReplacement
                     {
-                        StartIndex = itemLinkStartPosition,
-                        EndIndex = itemLinkStartPosition + fullStop + ItemLinkEndPattern.Length,
-                        ItemName = System.Text.Encoding.UTF8.GetString(itemName),
+                        StartIndex = itemLinkBufferStartPosition,
+                        EndIndex = itemLinkBufferStartPosition + itemLinkBufferEnd,
+                        ItemName = Encoding.UTF8.GetString(itemName),
                     });
                 }
 
@@ -166,7 +170,7 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                 foreach (var replacement in replacements)
                 {
                     var before = new ArraySegment<byte>(messageCopy, 0, replacement.StartIndex);
-                    var mid = System.Text.Encoding.UTF8.GetBytes(replacement.ItemName);
+                    var mid = Encoding.UTF8.GetBytes(replacement.ItemName);
                     var after = new ArraySegment<byte>(messageCopy, replacement.EndIndex, messageCopy.Length - (replacement.EndIndex));
                     messageCopy = before.Concat(mid).Concat(after).ToArray();
                 }
@@ -191,34 +195,31 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                 public string PFEntry
                 {
                     get => $"{{{_rawPFEntry}}}";
-                    set
-                    {
-                        _rawPFEntry = value;
-                    }
+                    set => _rawPFEntry = value;
                 }
-            };
+            }
 
             private static List<PFReplacement> GetReplacementsFromText(byte[] rawMessage)
             {
                 List<PFReplacement> result = new List<PFReplacement>();
 
-                var itemLinkStartPositions = ByteArrayExtensions.Locate(rawMessage, PFLinkStartPattern);
+                var itemLinkStartPositions = rawMessage.Locate(PFLinkStartPattern);
 
                 foreach (var itemLinkStartPosition in itemLinkStartPositions)
                 {
-                    var itemNameEndPosition = ByteArrayExtensions.Locate(rawMessage.Skip(itemLinkStartPosition).ToArray(), PFNameEndPattern)[0];
+                    var itemNameEndPosition = rawMessage.Skip(itemLinkStartPosition).ToArray().Locate(PFNameEndPattern)[0];
 
                     var itemLinkBuffer = rawMessage.Skip(itemLinkStartPosition).Take(itemNameEndPosition).ToArray();
-                    var itemNameStartPosition = ByteArrayExtensions.Locate(itemLinkBuffer, PFNameStartPattern).Last() + PFNameStartPattern.Length;
+                    var itemNameStartPosition = itemLinkBuffer.Locate(PFNameStartPattern).Last() + PFNameStartPattern.Length;
                     var itemName = itemLinkBuffer.Skip(itemNameStartPosition).Take(itemNameEndPosition).ToArray();
 
-                    var fullStop = ByteArrayExtensions.Locate(rawMessage.Skip(itemLinkStartPosition + itemNameStartPosition).ToArray(), PFLinkEndPattern)[0];
+                    var fullStop = rawMessage.Skip(itemLinkStartPosition + itemNameStartPosition).ToArray().Locate(PFLinkEndPattern)[0];
 
                     result.Add(new PFReplacement
                     {
                         StartIndex = itemLinkStartPosition,
                         EndIndex = itemLinkStartPosition + itemNameStartPosition + fullStop + PFLinkEndPattern.Length,
-                        PFEntry = System.Text.Encoding.UTF8.GetString(itemName),
+                        PFEntry = Encoding.UTF8.GetString(itemName),
                     });
                 }
 
@@ -236,7 +237,7 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                 foreach (var replacement in replacements)
                 {
                     var before = new ArraySegment<byte>(messageCopy, 0, replacement.StartIndex);
-                    var mid = System.Text.Encoding.UTF8.GetBytes(replacement.PFEntry);
+                    var mid = Encoding.UTF8.GetBytes(replacement.PFEntry);
                     var after = new ArraySegment<byte>(messageCopy, replacement.EndIndex, messageCopy.Length - (replacement.EndIndex));
                     messageCopy = before.Concat(mid).Concat(after).ToArray();
                 }
@@ -249,15 +250,15 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
         {
             public Character(string characterName, string worldName)
             {
-                _characterName = characterName;
-                _worldName = worldName;
+                CharacterName = characterName;
+                WorldName = worldName;
             }
-            public string _characterName;
-            public string _worldName;
-            public override string ToString() => $"<{_characterName}@{_worldName}>";
+            public string CharacterName;
+            public string WorldName;
+            public override string ToString() => $"<{CharacterName}@{WorldName}>";
         }
 
-        private void OnChatMessageReceived(object sender, FFXIVAPP.IPluginInterface.Events.ChatLogItemEvent e) {
+        private void OnChatMessageReceived(object sender, ChatLogItemEvent e) {
             if (sender == null)
             {
                 return;
@@ -268,12 +269,12 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                 return;
             }
 
-            if (e.ChatLogItem.Line.StartsWith(_currentCharacter._characterName) && !e.ChatLogItem.Line.Contains("FORCEEXEC"))
+            if (e.ChatLogItem.Line.StartsWith(_currentCharacter.CharacterName) && !e.ChatLogItem.Line.Contains("FORCEEXEC"))
             {
                 return;
             }
 
-            logger.Trace($"[CHATLOG]: '${e.ChatLogItem.Bytes}'");
+            _logger.Trace($"[CHATLOG]: '{BitConverter.ToString(e.ChatLogItem.Bytes)}'");
 
             byte[] utf8Message = ItemLinkReplacer.ReplaceItemReferences(e.ChatLogItem.Bytes);
             utf8Message = PFLinkReplacer.ReplaceItemReferences(utf8Message);
@@ -286,34 +287,34 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                 string logMessage = null;
 
                 // cross-world user require special treatment
-                switch (split[1].ToList().Count(b => b == 0x03))
+                switch (split[1].Count(b => b == 0x03))
                 {
                     case 3:
                         {
                             var crossWorldInfoSplit = Split(split[1], 0x03);
                             logCharacter = new Character(
-                                System.Text.Encoding.UTF8.GetString(crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray()),
-                                System.Text.Encoding.UTF8.GetString(crossWorldInfoSplit[3])
+                                Encoding.UTF8.GetString(crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray()),
+                                Encoding.UTF8.GetString(crossWorldInfoSplit[3])
                             );
-                            logMessage = System.Text.Encoding.UTF8.GetString(split[2]);
+                            logMessage = Encoding.UTF8.GetString(split[2]);
                         }
                         break;
                     case 2:
                         {
                             var crossWorldInfoSplit = Split(split[1], 0x03);
                             logCharacter = new Character(
-                                System.Text.Encoding.UTF8.GetString(crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray()),
-                                _currentCharacter._worldName
+                                Encoding.UTF8.GetString(crossWorldInfoSplit[1].TakeWhile(item => item != 0x02).ToArray()),
+                                _currentCharacter.WorldName
                             );
-                            logMessage = System.Text.Encoding.UTF8.GetString(split[2]);
+                            logMessage = Encoding.UTF8.GetString(split[2]);
                         }
                         break;
                     case 0:
                         logCharacter = new Character(
-                            System.Text.Encoding.UTF8.GetString(split[1]),
-                            _currentCharacter._worldName
+                            Encoding.UTF8.GetString(split[1]),
+                            _currentCharacter.WorldName
                         );
-                        logMessage = System.Text.Encoding.UTF8.GetString(split[2]);
+                        logMessage = Encoding.UTF8.GetString(split[2]);
                         break;
                 }
 
@@ -327,12 +328,15 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                     return;
                 }
 
-                _discordHandler.Broadcast($"{logCharacter} {logMessage}");
+                _discordHandler.Broadcast($"{logCharacter} {logMessage}").Wait();
             }
-            catch (Exception ex)
-            {
-                System.IO.File.AppendAllText(System.IO.Directory.GetCurrentDirectory() + "\\Plugins\\FFXIVAPP.Plugin.Discord\\a.txt", ex.ToString());
-                System.IO.File.AppendAllText(System.IO.Directory.GetCurrentDirectory() + "\\Plugins\\FFXIVAPP.Plugin.Discord\\a.txt", ex.InnerException.ToString());
+            catch (Exception ex) {
+                string errorOutput = ex.ToString();
+                if (ex.InnerException != null)
+                {
+                    errorOutput += "\r\n" + ex.InnerException;
+                }
+                _logger.Error(errorOutput);
             }
         }
 
@@ -362,7 +366,7 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
                         line = "";
                     }
 
-                    line += string.Format("{0} ", word);
+                    line += $"{word} ";
                 }
 
                 if (line.Length > 0)
@@ -379,15 +383,15 @@ namespace FFXIVAPP.Plugin.Discord.ChatHandler
             var wrappedMessages = WordWrap(message, 500 - (authorName.Length + 4));
             foreach (var wrappedMessage in wrappedMessages)
             {
-                inputSimulator.Keyboard.KeyPress(WindowsInput.Native.VirtualKeyCode.RETURN);
+                _inputSimulator.Keyboard.KeyPress(VirtualKeyCode.RETURN);
                 await Task.Delay(300);
-                inputSimulator.Keyboard.Sleep(300);
-                inputSimulator.Keyboard.TextEntry($"[{authorName}]: {wrappedMessage}   ");
+                _inputSimulator.Keyboard.Sleep(300);
+                _inputSimulator.Keyboard.TextEntry($"[{authorName}]: {wrappedMessage}   ");
                 await Task.Delay(300);
-                inputSimulator.Keyboard.Sleep(300);
-                inputSimulator.Keyboard.KeyPress(WindowsInput.Native.VirtualKeyCode.RETURN);
+                _inputSimulator.Keyboard.Sleep(300);
+                _inputSimulator.Keyboard.KeyPress(VirtualKeyCode.RETURN);
                 await Task.Delay(500);
-                inputSimulator.Keyboard.Sleep(500);
+                _inputSimulator.Keyboard.Sleep(500);
             }
         }
 

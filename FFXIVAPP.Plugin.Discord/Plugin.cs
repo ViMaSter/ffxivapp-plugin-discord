@@ -24,49 +24,31 @@ namespace FFXIVAPP.Plugin.Discord
     [Export(typeof(IPlugin))]
     public class Plugin : IPlugin, INotifyPropertyChanged
     {
-        private static Logger Logger = LogManager.GetCurrentClassLogger();
-
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        
         private IPluginHost _host;
-
         private Dictionary<string, string> _locale;
-
         private string _name;
-
         private MessageBoxResult _popupResult;
-
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
-
         public static IPluginHost PHost { get; private set; }
-
         public static string PName { get; private set; }
-
         public string Copyright { get; private set; }
-
         public string Description { get; private set; }
-
         public string FriendlyName { get; set; }
 
         public IPluginHost Host
         {
-            get
-            {
-                return this._host;
-            }
+            get => this._host;
 
-            set
-            {
-                PHost = this._host = value;
-            }
+            set => PHost = this._host = value;
         }
 
         public string Icon { get; private set; }
 
         public Dictionary<string, string> Locale
         {
-            get
-            {
-                return this._locale ?? (this._locale = new Dictionary<string, string>());
-            }
+            get => this._locale ??= new Dictionary<string, string>();
 
             set
             {
@@ -98,25 +80,15 @@ namespace FFXIVAPP.Plugin.Discord
 
         public string Name
         {
-            get
-            {
-                return this._name;
-            }
-
-            private set
-            {
-                PName = this._name = value;
-            }
+            get => this._name;
+            private set => PName = this._name = value;
         }
 
         public string Notice { get; private set; }
 
         public MessageBoxResult PopupResult
         {
-            get
-            {
-                return this._popupResult;
-            }
+            get => this._popupResult;
 
             set
             {
@@ -125,6 +97,7 @@ namespace FFXIVAPP.Plugin.Discord
             }
         }
 
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public Exception Trace { get; private set; }
 
         public string Version { get; private set; }
@@ -136,31 +109,31 @@ namespace FFXIVAPP.Plugin.Discord
 
         public void InitiateBot()
         {
-            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(CurrentDomain_UnhandledException);
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             try
             {
                 var discordHandler = new ChatHandler.Discord(Settings.Default.Discord__APIKey);
                 var ffxivHandler = new ChatHandler.FFXIV(this.Host);
 
-                this.Host.ConstantsUpdated += (object sender, IPluginInterface.Events.ConstantsEntityEvent e) =>
+                this.Host.ConstantsUpdated += (sender, e) =>
                 {
-                    if (worldName == e.ConstantsEntity.ServerName)
+                    if (WorldName == e.ConstantsEntity.ServerName)
                     {
                         return;
                     }
 
-                    worldName = e.ConstantsEntity.ServerName;
+                    WorldName = e.ConstantsEntity.ServerName;
                 };
 
-                this.Host.CurrentPlayerUpdated += (object sender, FFXIVAPP.IPluginInterface.Events.CurrentPlayerEvent e) =>
+                this.Host.CurrentPlayerUpdated += (sender, e) =>
                 {
-                    if (characterName == e.CurrentPlayer.Name)
+                    if (CharacterName == e.CurrentPlayer.Name)
                     {
                         return;
                     }
 
-                    characterName = e.CurrentPlayer.Name;
+                    CharacterName = e.CurrentPlayer.Name;
 
                     discordHandler.SetIsActive(!string.IsNullOrEmpty(e.CurrentPlayer.Name));
                 };
@@ -175,7 +148,7 @@ namespace FFXIVAPP.Plugin.Discord
                         string data = e.ToString();
                         if (e.InnerException != null)
                         {
-                            data += "\r\nInner exception: " + e.InnerException.ToString();
+                            data += $"\r\nInner exception: {e.InnerException}";
                         }
                         Logger.Error($"[DISCORD] {data}");
                     }
@@ -190,7 +163,7 @@ namespace FFXIVAPP.Plugin.Discord
                         string data = e.ToString();
                         if (e.InnerException != null)
                         {
-                            data += "\r\nInner exception: " + e.InnerException.ToString();
+                            data += "\r\nInner exception: " + e.InnerException;
                         }
                         Logger.Error($"[FFXIV] {data}");
                     }
@@ -201,7 +174,7 @@ namespace FFXIVAPP.Plugin.Discord
                 string data = e.ToString();
                 if (e.InnerException != null)
                 {
-                    data += "\r\nInner exception: " + e.InnerException.ToString();
+                    data += "\r\nInner exception: " + e.InnerException;
                 }
                 Logger.Error($"[GLOBAL] {data}");
             }
@@ -250,13 +223,13 @@ namespace FFXIVAPP.Plugin.Discord
         {
             return new Dictionary<string, string>
             {
-                { "Character name", characterName },
-                { "World name", worldName },
+                { "Character name", CharacterName },
+                { "World name", WorldName },
             };
         }
 
-        public string characterName = "";
-        public string worldName = "";
+        public string CharacterName = "";
+        public string WorldName = "";
 
         private void SetupPulsewayLogging()
         {
@@ -265,7 +238,7 @@ namespace FFXIVAPP.Plugin.Discord
                 ExtendNLogConfig();
             };
 
-            NLog.Config.ConfigurationItemFactory.Default.Targets.RegisterDefinition("PulsewayNLog", typeof(PulsewayNLogTarget));
+            ConfigurationItemFactory.Default.Targets.RegisterDefinition("PulsewayNLog", typeof(PulsewayNLogTarget));
         }
 
         private void ExtendNLogConfig() {

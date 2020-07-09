@@ -1,50 +1,53 @@
 ﻿using System.Collections.Generic;
 
-static class ByteArrayExtensions
+namespace FFXIVAPP.Plugin.Discord
 {
-    static readonly int[] Empty = new int[0];
-
-    public static int[] Locate(this byte[] self, byte?[] candidate)
+    static class ByteArrayExtensions
     {
-        if (IsEmptyLocate(self, candidate))
-            return Empty;
+        static readonly int[] Empty = new int[0];
 
-        var list = new List<int>();
-
-        for (int i = 0; i < self.Length; i++)
+        public static int[] Locate(this byte[] self, byte?[] candidate)
         {
-            if (!self.IsMatch(i, candidate))
-                continue;
+            if (IsEmptyLocate(self, candidate))
+                return Empty;
 
-            list.Add(i);
+            var list = new List<int>();
+
+            for (int i = 0; i < self.Length; i++)
+            {
+                if (!self.IsMatch(i, candidate))
+                    continue;
+
+                list.Add(i);
+            }
+
+            return list.Count == 0 ? Empty : list.ToArray();
         }
 
-        return list.Count == 0 ? Empty : list.ToArray();
-    }
-
-    static bool IsMatch(this byte[] array, int position, byte?[] candidate)
-    {
-        if (candidate.Length > (array.Length - position))
-            return false;
-
-        for (int i = 0; i < candidate.Length; i++)
+        static bool IsMatch(this byte[] array, int position, byte?[] candidate)
         {
-            if (candidate[i] == null)
-                continue;
-
-            if (array[position + i] != candidate[i])
+            if (candidate.Length > (array.Length - position))
                 return false;
+
+            for (int i = 0; i < candidate.Length; i++)
+            {
+                if (candidate[i] == null)
+                    continue;
+
+                if (array[position + i] != candidate[i])
+                    return false;
+            }
+
+            return true;
         }
 
-        return true;
-    }
-
-    static bool IsEmptyLocate(byte[] array, byte?[] candidate)
-    {
-        return array == null
-               || candidate == null
-               || array.Length == 0
-               || candidate.Length == 0
-               || candidate.Length > array.Length;
+        static bool IsEmptyLocate(byte[] array, byte?[] candidate)
+        {
+            return array == null
+                   || candidate == null
+                   || array.Length == 0
+                   || candidate.Length == 0
+                   || candidate.Length > array.Length;
+        }
     }
 }
